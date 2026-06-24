@@ -1,0 +1,10 @@
+# Never commit a generated config that contains a real API key
+config/config.json
+config.json
+*.local.json
+
+# Logs / OS noise
+*.log
+.DS_Store
+Thumbs.db
+node_modules/

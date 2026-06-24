@@ -1,0 +1,26 @@
+{
+  "LOG": false,
+  "HOST": "127.0.0.1",
+  "PORT": 3456,
+  "APIKEY": "local-ccr-secret",
+  "Providers": [
+    {
+      "name": "nvidia",
+      "api_base_url": "https://integrate.api.nvidia.com/v1/chat/completions",
+      "api_key": "__NVIDIA_API_KEY__",
+      "models": ["minimaxai/minimax-m2.7", "minimaxai/minimax-m3"],
+      "transformer": { "use": ["strip-reasoning"] }
+    }
+  ],
+  "Router": {
+    "default": "nvidia,minimaxai/minimax-m2.7",
+    "background": "nvidia,minimaxai/minimax-m2.7",
+    "think": "nvidia,minimaxai/minimax-m2.7",
+    "longContext": "nvidia,minimaxai/minimax-m2.7",
+    "longContextThreshold": 60000,
+    "webSearch": "nvidia,minimaxai/minimax-m2.7"
+  },
+  "transformers": [
+    { "path": "__STRIP_REASONING_PATH__" }
+  ]
+}

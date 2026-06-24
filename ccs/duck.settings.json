@@ -1,0 +1,11 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:3456",
+    "ANTHROPIC_AUTH_TOKEN": "local-ccr-secret",
+    "ANTHROPIC_MODEL": "minimaxai/minimax-m2.7",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "minimaxai/minimax-m2.7",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "minimaxai/minimax-m2.7",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "minimaxai/minimax-m2.7",
+    "CCS_DROID_PROVIDER": "anthropic"
+  }
+}
