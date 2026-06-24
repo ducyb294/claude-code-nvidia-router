@@ -1,23 +1,29 @@
 <#
   Install / configure claude-code-router (CCR) so CCS + Claude Code can use
-  NVIDIA NIM models (minimax-m2.7 / m3) through the Anthropic Messages API.
+  any NVIDIA NIM model through the Anthropic Messages API.
 
   Usage (from the repo root):
     powershell -ExecutionPolicy Bypass -File scripts/install.ps1
-    powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -NvidiaApiKey "nvapi-..."
+    powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -NvidiaApiKey "nvapi-XXXX"
+    powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -Model "qwen/qwen3-235b-a22b"
 
+  -Model   The NVIDIA model id to route to. Default: minimaxai/minimax-m2.7 (just
+           an example — NVIDIA hosts many; run scripts/list-models.ps1 to browse).
   The NVIDIA key is read from (in order): -NvidiaApiKey param, $env:NVIDIA_API_KEY,
   or an interactive prompt. The key is written ONLY to ~/.claude-code-router/config.json
   (gitignored, outside this repo).
 #>
 param(
-  [string]$NvidiaApiKey = ""
+  [string]$NvidiaApiKey = "",
+  [string]$Model = "minimaxai/minimax-m2.7"
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot   = Split-Path -Parent $PSScriptRoot
 $ccrDir     = Join-Path $HOME ".claude-code-router"
 $ccsDir     = Join-Path $HOME ".ccs"
+
+Write-Host "==> Target NVIDIA model: $Model"
 
 Write-Host "==> Checking prerequisites (node, npm)..."
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw "node not found. Install Node.js first." }
@@ -43,15 +49,18 @@ $stripSrc  = Join-Path $repoRoot "transformer\strip-reasoning.js"
 $stripDest = Join-Path $ccrDir   "strip-reasoning.js"
 Copy-Item -Path $stripSrc -Destination $stripDest -Force
 
-Write-Host "==> Writing config.json (with your key + absolute transformer path)..."
+Write-Host "==> Writing config.json (key + model + absolute transformer path)..."
 $tpl = Get-Content (Join-Path $repoRoot "config\config.template.json") -Raw
 $tpl = $tpl.Replace("__NVIDIA_API_KEY__", $NvidiaApiKey)
+$tpl = $tpl.Replace("__NVIDIA_MODEL__", $Model)
 $tpl = $tpl.Replace("__STRIP_REASONING_PATH__", ($stripDest -replace '\\','/'))
 Set-Content -Path (Join-Path $ccrDir "config.json") -Value $tpl -Encoding utf8
 
 Write-Host "==> Installing CCS settings (~/.ccs/duck.settings.json)..."
 New-Item -ItemType Directory -Force -Path $ccsDir | Out-Null
-Copy-Item -Path (Join-Path $repoRoot "ccs\duck.settings.json") -Destination (Join-Path $ccsDir "duck.settings.json") -Force
+$ccsTpl = Get-Content (Join-Path $repoRoot "ccs\duck.settings.template.json") -Raw
+$ccsTpl = $ccsTpl.Replace("__NVIDIA_MODEL__", $Model)
+Set-Content -Path (Join-Path $ccsDir "duck.settings.json") -Value $ccsTpl -Encoding utf8
 
 Write-Host "==> Starting router..."
 ccr restart
@@ -59,7 +68,7 @@ ccr restart
 Start-Sleep -Seconds 2
 Write-Host "==> Smoke test (thinking-enabled request through the router)..."
 $body = @{
-  model      = "minimaxai/minimax-m2.7"
+  model      = $Model
   max_tokens = 256
   thinking   = @{ type = "enabled"; budget_tokens = 128 }
   messages   = @(@{ role = "user"; content = "What is 17 + 25? Reply with just the number." })
@@ -82,4 +91,5 @@ try {
 
 Write-Host ""
 Write-Host "Done. The router is running on http://127.0.0.1:3456"
-Write-Host "Now launch CCS as usual. After a reboot, run 'ccr start' before using CCS."
+Write-Host "Now launch CCS as usual, or run 'ccr code' for Claude Code directly."
+Write-Host "After a reboot, run 'ccr start' before using either."

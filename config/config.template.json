@@ -8,17 +8,17 @@
       "name": "nvidia",
       "api_base_url": "https://integrate.api.nvidia.com/v1/chat/completions",
       "api_key": "__NVIDIA_API_KEY__",
-      "models": ["minimaxai/minimax-m2.7", "minimaxai/minimax-m3"],
+      "models": ["__NVIDIA_MODEL__"],
       "transformer": { "use": ["strip-reasoning"] }
     }
   ],
   "Router": {
-    "default": "nvidia,minimaxai/minimax-m2.7",
-    "background": "nvidia,minimaxai/minimax-m2.7",
-    "think": "nvidia,minimaxai/minimax-m2.7",
-    "longContext": "nvidia,minimaxai/minimax-m2.7",
+    "default": "nvidia,__NVIDIA_MODEL__",
+    "background": "nvidia,__NVIDIA_MODEL__",
+    "think": "nvidia,__NVIDIA_MODEL__",
+    "longContext": "nvidia,__NVIDIA_MODEL__",
     "longContextThreshold": 60000,
-    "webSearch": "nvidia,minimaxai/minimax-m2.7"
+    "webSearch": "nvidia,__NVIDIA_MODEL__"
   },
   "transformers": [
     { "path": "__STRIP_REASONING_PATH__" }

@@ -1,8 +1,12 @@
-# CCS + Claude Code → NVIDIA NIM (minimax) via claude-code-router
+# CCS + Claude Code → NVIDIA NIM via claude-code-router
 
-Lets **CCS / Claude Code** use models hosted on **NVIDIA NIM**
-(`minimaxai/minimax-m2.7`, `minimaxai/minimax-m3`) — which only expose an
-OpenAI-compatible endpoint — by putting a protocol-translating proxy in between.
+Lets **CCS / Claude Code** use any model hosted on **NVIDIA NIM**
+(`https://integrate.api.nvidia.com`) — which only exposes an OpenAI-compatible
+endpoint — by putting a protocol-translating proxy in between.
+
+NVIDIA hosts many models (Llama, Qwen, DeepSeek, MiniMax, Nemotron, …); this
+setup is model-agnostic — pick whichever one you want via `-Model` (default is
+`minimaxai/minimax-m2.7` purely as an example).
 
 ## The problem
 
@@ -33,7 +37,7 @@ CCS / Claude Code  --(Anthropic API)-->  CCR :3456  --(OpenAI API)-->  NVIDIA NI
 
 - Node.js + npm
 - An NVIDIA API key (`nvapi-...`) — get one at https://build.nvidia.com
-- CCS installed (reads `~/.ccs/*.settings.json`)
+- CCS installed (reads `~/.ccs/*.settings.json`), and/or the `claude` CLI
 
 ## Install (Windows)
 
@@ -41,37 +45,37 @@ CCS / Claude Code  --(Anthropic API)-->  CCR :3456  --(OpenAI API)-->  NVIDIA NI
 git clone <repo-url> claude-code-nvidia-router
 cd claude-code-nvidia-router
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+# pick a specific NVIDIA model:
+# powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -Model "qwen/qwen3-235b-a22b"
 # or pass the key directly:
 # powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -NvidiaApiKey "nvapi-XXXX"
 ```
 
 The script: installs CCR globally → copies the transformer and generates
-`~/.claude-code-router/config.json` (with your key injected) → copies
+`~/.claude-code-router/config.json` (with your key + chosen model) → writes
 `~/.ccs/duck.settings.json` → starts the router → runs a smoke test.
 
 > The API key is written **only** to `~/.claude-code-router/config.json`
 > (outside this repo). `config/config.json` and `*.local.json` are gitignored,
 > so the key is never committed.
 
-## Usage
-
-Launch CCS as usual. Requests now flow through the router to minimax.
-
-- **After a reboot**: the router does not auto-start → run `ccr start`.
-- Change the default model: edit `Router.default` in
-  `~/.claude-code-router/config.json`, then `ccr restart`.
-- Check status: `ccr status`.
-- Debug: set `"LOG": true` in the config → `ccr restart` → see logs under
-  `~/.claude-code-router/`.
-
-## Using Claude Code directly (without CCS)
-
-CCS is just an opt-in launcher (it reads `duck.settings.json`, sets the env, then
-runs Claude Code). If you don't use CCS, CCR ships its own launcher — **no extra
-config files needed**:
+### Browse / pick a model
 
 ```powershell
-ccr code                       # interactive session through the router -> minimax
+powershell -ExecutionPolicy Bypass -File scripts/list-models.ps1            # all models
+powershell -ExecutionPolicy Bypass -File scripts/list-models.ps1 -Filter qwen
+```
+
+## Usage
+
+### Through CCS
+Launch CCS as usual. Requests flow through the router to your chosen model.
+
+### Claude Code directly (without CCS)
+CCR ships its own launcher — **no extra config files needed**:
+
+```powershell
+ccr code                       # interactive session through the router
 ccr code "Write a hello world" # one-shot prompt
 ```
 
@@ -82,6 +86,23 @@ plain `claude` elsewhere keeps using your normal Anthropic models. (Requires the
 > Avoid putting `ANTHROPIC_BASE_URL` in the global `~/.claude/settings.json` —
 > that would route **every** Claude Code session (including Opus/Sonnet) through
 > NVIDIA, which is usually not what you want. Prefer `ccr code` or CCS for opt-in.
+
+## Changing the model later
+
+Edit `~/.claude-code-router/config.json`:
+
+- `Providers[0].models` — list the model id(s) you want available
+- `Router.default` (and the other `Router.*` routes) — `"nvidia,<model-id>"`
+
+Then `ccr restart`. (Optionally update `ANTHROPIC_MODEL` in
+`~/.ccs/duck.settings.json` to match — it's cosmetic; CCR routes by `Router`.)
+
+## Maintenance
+
+- **After a reboot**: the router does not auto-start → run `ccr start`.
+- Check status: `ccr status`.
+- Debug: set `"LOG": true` in the config → `ccr restart` → see logs under
+  `~/.claude-code-router/`.
 
 ## Auto-start on Windows login (optional)
 
@@ -103,10 +124,11 @@ powershell -ExecutionPolicy Bypass -File scripts/uninstall.ps1 -RemovePackage
 ## Repo layout
 
 ```
-config/config.template.json    # CCR config template (key = placeholder)
-transformer/strip-reasoning.js # drops the `reasoning` param for NVIDIA
-ccs/duck.settings.json         # CCS settings pointing at the router
-scripts/install.ps1            # install + configure + smoke test
-scripts/uninstall.ps1          # tear down
-.gitignore                     # prevents committing a config that holds the key
+config/config.template.json        # CCR config template (key + model = placeholders)
+transformer/strip-reasoning.js     # drops the `reasoning` param for NVIDIA
+ccs/duck.settings.template.json    # CCS settings template (model = placeholder)
+scripts/install.ps1                # install + configure + smoke test (-Model, -NvidiaApiKey)
+scripts/list-models.ps1            # list NVIDIA model ids
+scripts/uninstall.ps1              # tear down
+.gitignore                         # prevents committing a config that holds the key
 ```
