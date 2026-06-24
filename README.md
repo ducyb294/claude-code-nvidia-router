@@ -64,6 +64,25 @@ Launch CCS as usual. Requests now flow through the router to minimax.
 - Debug: set `"LOG": true` in the config → `ccr restart` → see logs under
   `~/.claude-code-router/`.
 
+## Using Claude Code directly (without CCS)
+
+CCS is just an opt-in launcher (it reads `duck.settings.json`, sets the env, then
+runs Claude Code). If you don't use CCS, CCR ships its own launcher — **no extra
+config files needed**:
+
+```powershell
+ccr code                       # interactive session through the router -> minimax
+ccr code "Write a hello world" # one-shot prompt
+```
+
+`ccr code` points `claude` at the local router for that session only. Running
+plain `claude` elsewhere keeps using your normal Anthropic models. (Requires the
+`claude` CLI on PATH; `ccr code` auto-starts the router if it isn't running.)
+
+> Avoid putting `ANTHROPIC_BASE_URL` in the global `~/.claude/settings.json` —
+> that would route **every** Claude Code session (including Opus/Sonnet) through
+> NVIDIA, which is usually not what you want. Prefer `ccr code` or CCS for opt-in.
+
 ## Auto-start on Windows login (optional)
 
 Create a scheduled task that runs `ccr start` at logon:
